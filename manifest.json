@@ -1,14 +1,14 @@
 {
   "name": "Ints81's Blog",
   "short_name": "Ints81's Blog",
-  "start_url": "/ints81.github.io/",
-  "scope": "/ints81.github.io/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "/ints81.github.io/favicon.svg",
+      "src": "/favicon.svg",
       "sizes": "512x512"
     }
   ]
