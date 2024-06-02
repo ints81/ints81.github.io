@@ -1,6 +1,6 @@
 #!/bin/bash
 
-commit_msg=$1
+commit_msg="'$*'"
 date=$(date '+%Y-%m-%d %H:%M:%S')
 
 cd $BLOG_HOME
