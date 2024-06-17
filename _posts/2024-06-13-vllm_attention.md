@@ -94,11 +94,9 @@ void paged_attention_v1_launcher(
 
 위의 매크로는 결과적으로 `paged_attention_v1_kernel`이라는 CUDA kernel을 호출하는데, 매크로 특성 상 매크로 내용물을 호출하는 위치에 치환한 뒤에 컴파일을 하기 때문에 이 kernel을 호출할 때 사용하는 grid size와 block size는 `paged_attention_v1_launcher`의 `grid`와 `block` 변수이다. 따라서 paged attention v1 kernel의
 
-> [!NOTE]
+> grid size : (number of heads, number of tokens, 1)
 >
-> grid size : (number of heads, number of sequences, 1)
->
-> block size : (number of threads, 1, 1), number of threads는 기본값이 128이다.
+> block size : (number of threads, 1, 1), number of threads는 기본값이 128이다. {: .prompt-info}
 
 라는 걸 확인 할 수 있다.
 
@@ -122,7 +120,7 @@ __global__ void paged_attention_v1_kernel(
 
 이 함수가 최종적으로는 **`paged_attention_kernel`**이라는 CUDA kernel을 호출하는 것을 알 수 있다. **이 kernel이 실질적인 paged attention에 대한 구현**이다. 
 
-`paged_attention_kernel`의 구현은 아래와 같다. 이 kernel은 paged attention v1과 paged attention v2가 합쳐져있는 구현으로, 각 인자에 어떤 값이 들어가는지에 따라 
+`paged_attention_kernel`의 구현은 아래와 같다. 이 kernel은 paged attention v1과 paged attention v2가 합쳐져있는 구현으로, 각 인자에 어떤 값이 들어가는지에 따라 v1으로 동작하거나 v2로 동작한다.
 
 
 
