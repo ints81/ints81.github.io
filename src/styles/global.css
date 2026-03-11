@@ -68,6 +68,55 @@ html[data-theme="dark"] {
   scrollbar-width: thin;
 }
 
+.toc-card {
+  @apply block cursor-pointer rounded-lg border border-border bg-muted/40 px-5 py-4 text-foreground transition-colors hover:border-accent/40;
+}
+
+.toc-card summary {
+  @apply flex items-center gap-3 text-base font-bold tracking-tight text-foreground select-none focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed;
+}
+
+.toc-card summary::before {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toc-card[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.toc-card summary::marker,
+.toc-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.toc-card[open] summary {
+  @apply mb-3 border-b border-border pb-3;
+}
+
+.toc-card[open] summary ~ * {
+  animation: toc-slide-down 0.2s ease-out;
+}
+
+.toc-card ul {
+  @apply m-0 list-none pl-4 [&_ul]:my-0 [&_ul]:ml-0 [&_ul]:border-l-2 [&_ul]:border-border/60 [&_ul]:pl-4 [&_ul]:pt-px;
+}
+
+.toc-card ul li {
+  @apply list-none py-px leading-tight;
+}
+
+.toc-card ul li a {
+  @apply text-sm font-medium text-foreground/50 no-underline transition-colors hover:text-accent;
+}
+
 @keyframes toc-slide-down {
   from {
     opacity: 0;

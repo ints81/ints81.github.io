@@ -1,0 +1,51 @@
+---
+type Heading = {
+  depth: number;
+  slug: string;
+  text: string;
+};
+
+type Props = {
+  headings: Heading[];
+};
+
+const { headings } = Astro.props;
+
+const filtered = headings.filter(h => h.depth >= 2 && h.depth <= 3);
+if (filtered.length === 0) return;
+
+type TocItem = {
+  slug: string;
+  text: string;
+  children: { slug: string; text: string }[];
+};
+
+const toc: TocItem[] = [];
+for (const h of filtered) {
+  if (h.depth === 2) {
+    toc.push({ slug: h.slug, text: h.text, children: [] });
+  } else if (h.depth === 3 && toc.length > 0) {
+    toc[toc.length - 1].children.push({ slug: h.slug, text: h.text });
+  }
+}
+---
+
+<details class="toc-card not-prose">
+  <summary>목차</summary>
+  <ul>
+    {toc.map(item => (
+      <li>
+        <a href={`#${item.slug}`}>{item.text}</a>
+        {item.children.length > 0 && (
+          <ul>
+            {item.children.map(child => (
+              <li>
+                <a href={`#${child.slug}`}>{child.text}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    ))}
+  </ul>
+</details>

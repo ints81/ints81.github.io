@@ -51,8 +51,6 @@ tags:
 description: "{description}"
 ---
 
-## Table of contents
-
 여기에 글을 작성하세요.
 """
 
