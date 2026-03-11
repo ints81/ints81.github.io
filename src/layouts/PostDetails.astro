@@ -6,7 +6,6 @@ import Footer from "@/components/Footer.astro";
 import Tag from "@/components/Tag.astro";
 import Datetime from "@/components/Datetime.astro";
 import EditPost from "@/components/EditPost.astro";
-import ShareLinks from "@/components/ShareLinks.astro";
 import BackButton from "@/components/BackButton.astro";
 import BackToTopButton from "@/components/BackToTopButton.astro";
 import Giscus from "@/components/Giscus.astro";
@@ -125,8 +124,6 @@ const nextPost =
 
     <BackToTopButton />
 
-    <ShareLinks />
-
     <Giscus />
 
     <hr class="my-6 border-dashed" />
@@ -163,6 +160,19 @@ const nextPost =
       }
     </div>
   </main>
+
+  <aside
+    id="toc-sidebar"
+    class="fixed top-20 hidden max-h-[calc(100vh-8rem)] w-48 overflow-y-auto xl:block"
+  >
+    <h2
+      class="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground/50"
+    >
+      목차
+    </h2>
+    <ul id="toc-links" class="space-y-0.5 border-l border-border pl-3"></ul>
+  </aside>
+
   <Footer />
 </Layout>
 
@@ -285,4 +295,83 @@ const nextPost =
   document.addEventListener("astro:after-swap", () =>
     window.scrollTo({ left: 0, top: 0, behavior: "instant" })
   );
+
+  function setupTocSidebar() {
+    const article = document.getElementById("article");
+    const tocSidebar = document.getElementById("toc-sidebar");
+    const tocLinksContainer = document.getElementById("toc-links");
+    if (!article || !tocSidebar || !tocLinksContainer) return;
+
+    const headings = Array.from(article.querySelectorAll("h2, h3")).filter(
+      h => !h.closest("details")
+    );
+
+    if (headings.length === 0) {
+      tocSidebar.remove();
+      return;
+    }
+
+    headings.forEach(heading => {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = "#" + heading.id;
+      const clone = heading.cloneNode(true);
+      const linkEl = clone.querySelector(".heading-link");
+      if (linkEl) linkEl.remove();
+      a.textContent = clone.textContent.trim();
+      a.className =
+        "toc-link block py-0.5 text-sm leading-snug text-foreground/50 transition-colors hover:text-accent";
+      if (heading.tagName === "H3") {
+        a.classList.add("pl-3", "text-xs");
+      }
+      li.appendChild(a);
+      tocLinksContainer.appendChild(li);
+    });
+
+    function positionSidebar() {
+      if (window.innerWidth < 1280) return;
+      const mainEl = document.getElementById("main-content");
+      if (!mainEl) return;
+      const rect = mainEl.getBoundingClientRect();
+      tocSidebar.style.left = rect.right + 24 + "px";
+    }
+    positionSidebar();
+    window.addEventListener("resize", positionSidebar);
+
+    const mediaQuery = window.matchMedia("(min-width: 1280px)");
+    function handleInlineToc(e) {
+      const mq = e.matches !== undefined ? e : { matches: e.matches };
+      const inlineToc = article.querySelector("details");
+      if (inlineToc) {
+        inlineToc.style.display = (mq.matches ?? e) ? "none" : "";
+      }
+    }
+    handleInlineToc(mediaQuery);
+    mediaQuery.addEventListener("change", handleInlineToc);
+
+    const links = tocLinksContainer.querySelectorAll(".toc-link");
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            links.forEach(a => {
+              a.classList.remove("text-accent", "font-medium");
+              a.classList.add("text-foreground/50");
+            });
+            const active = tocLinksContainer.querySelector(
+              'a[href="#' + CSS.escape(entry.target.id) + '"]'
+            );
+            if (active) {
+              active.classList.remove("text-foreground/50");
+              active.classList.add("text-accent", "font-medium");
+            }
+          }
+        });
+      },
+      { rootMargin: "-80px 0px -75% 0px" }
+    );
+
+    headings.forEach(h => observer.observe(h));
+  }
+  setupTocSidebar();
 </script>

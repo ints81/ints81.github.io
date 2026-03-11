@@ -64,6 +64,21 @@ html[data-theme="dark"] {
   @apply underline decoration-solid decoration-2 underline-offset-8;
 }
 
+#toc-sidebar {
+  scrollbar-width: thin;
+}
+
+@keyframes toc-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Source: https://piccalil.li/blog/a-more-modern-css-reset/ */
 /* Anything that has been anchored to should have extra scroll margin */
 :target {

@@ -79,11 +79,52 @@
     }
 
     details {
-      @apply inline-block cursor-pointer text-foreground select-none [&_p]:hidden [&_ul]:my-0!;
+      @apply block cursor-pointer rounded-lg border border-border bg-muted/40 px-5 py-4 text-foreground transition-colors hover:border-accent/40 [&_p]:hidden [&_ul]:my-0!;
     }
 
-    summary {
-      @apply focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed;
+    details summary {
+      @apply flex items-center gap-3 text-base font-bold tracking-tight text-foreground select-none focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent focus-visible:outline-dashed;
+    }
+
+    details summary::before {
+      content: "";
+      display: inline-block;
+      width: 0.45em;
+      height: 0.45em;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(-45deg);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    details[open] summary::before {
+      transform: rotate(45deg);
+    }
+
+    details summary::marker,
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details[open] summary {
+      @apply mb-3 border-b border-border pb-3;
+    }
+
+    details[open] summary ~ * {
+      animation: toc-slide-down 0.2s ease-out;
+    }
+
+    details ul {
+      @apply pl-4 [&_ul]:my-0! [&_ul]:border-l-2 [&_ul]:border-border/60 [&_ul]:pl-4;
+    }
+
+    details ul li {
+      @apply list-none py-0 leading-tight;
+    }
+
+    details ul li a {
+      @apply text-sm no-underline opacity-70 hover:text-accent hover:opacity-100;
     }
 
     pre {
