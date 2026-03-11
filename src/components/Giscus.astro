@@ -1,0 +1,70 @@
+---
+const giscusConfig = {
+  repo: "OWNER/REPO",
+  repoId: "YOUR_REPO_ID",
+  category: "Announcements",
+  categoryId: "YOUR_CATEGORY_ID",
+  mapping: "pathname",
+  reactionsEnabled: "1",
+  emitMetadata: "0",
+  inputPosition: "top",
+  lang: "ko",
+};
+---
+
+<section class="mt-8">
+  <div id="giscus-container"></div>
+</section>
+
+<script
+  is:inline
+  data-astro-rerun
+  data-repo={giscusConfig.repo}
+  data-repo-id={giscusConfig.repoId}
+  data-category={giscusConfig.category}
+  data-category-id={giscusConfig.categoryId}
+  data-mapping={giscusConfig.mapping}
+  data-reactions-enabled={giscusConfig.reactionsEnabled}
+  data-emit-metadata={giscusConfig.emitMetadata}
+  data-input-position={giscusConfig.inputPosition}
+  data-lang={giscusConfig.lang}
+>
+  function loadGiscus() {
+    const container = document.getElementById("giscus-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    const theme = document.documentElement.getAttribute("data-theme") === "dark"
+      ? "dark"
+      : "light";
+
+    const script = document.createElement("script");
+    const scriptTag = document.querySelector("[data-repo][data-repo-id]");
+
+    script.src = "https://giscus.app/client.js";
+    script.setAttribute("data-repo", scriptTag.dataset.repo);
+    script.setAttribute("data-repo-id", scriptTag.dataset.repoId);
+    script.setAttribute("data-category", scriptTag.dataset.category);
+    script.setAttribute("data-category-id", scriptTag.dataset.categoryId);
+    script.setAttribute("data-mapping", scriptTag.dataset.mapping);
+    script.setAttribute("data-strict", "0");
+    script.setAttribute("data-reactions-enabled", scriptTag.dataset.reactionsEnabled);
+    script.setAttribute("data-emit-metadata", scriptTag.dataset.emitMetadata);
+    script.setAttribute("data-input-position", scriptTag.dataset.inputPosition);
+    script.setAttribute("data-theme", theme);
+    script.setAttribute("data-lang", scriptTag.dataset.lang);
+    script.setAttribute("crossorigin", "anonymous");
+    script.async = true;
+
+    container.appendChild(script);
+  }
+
+  loadGiscus();
+
+  const themeBtn = document.getElementById("theme-btn");
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      setTimeout(loadGiscus, 200);
+    });
+  }
+</script>
