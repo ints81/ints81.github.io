@@ -23,7 +23,8 @@ BLOG_DIR = REPO_ROOT / "src" / "data" / "blog"
 ASSETS_DIR = REPO_ROOT / "src" / "assets" / "images"
 
 KST = timezone(timedelta(hours=9))
-IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+MD_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+HTML_IMAGE_RE = re.compile(r'<img\s[^>]*src=["\']([^"\']+)["\'][^>]*/?\s*>', re.IGNORECASE)
 FRONTMATTER_RE = re.compile(r"^---[ \t]*\n(.*?\n)---[ \t]*\n", re.DOTALL)
 
 LOG_FILE = REPO_ROOT / "scripts" / "sync_posts.log"
@@ -78,32 +79,56 @@ def _win_to_wsl(path: str) -> str:
     return f"/mnt/{drive}{path[2:]}"
 
 
+def _resolve_image(img_path: str, source_file: Path) -> Path | None:
+    """이미지 경로를 WSL 파일시스템 경로로 변환."""
+    if img_path.startswith(("http://", "https://", "//")):
+        return None
+
+    if WIN_ABS_RE.match(img_path):
+        return Path(_win_to_wsl(img_path))
+
+    return (source_file.parent / img_path.replace("\\", "/")).resolve()
+
+
+def _copy_image(src_img: Path, source_file: Path) -> str | None:
+    """이미지를 assets로 복사하고 새 경로를 반환. 실패 시 None."""
+    if not src_img.is_file():
+        log.warning("이미지 누락: %s (in %s)", src_img, source_file.name)
+        return None
+
+    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    dest_img = ASSETS_DIR / src_img.name
+    shutil.copy2(src_img, dest_img)
+    log.info("이미지 복사: %s -> %s", src_img.name, dest_img.relative_to(REPO_ROOT))
+    return f"../../assets/images/{src_img.name}"
+
+
 def process_images(content: str, source_file: Path) -> str:
-    """마크다운에서 로컬 이미지를 찾아 assets로 복사하고 경로를 갱신."""
+    """마크다운 및 HTML 이미지를 찾아 assets로 복사하고 경로를 갱신."""
 
-    def _replace(match: re.Match) -> str:
+    def _replace_md(match: re.Match) -> str:
         alt, img_path = match.group(1), match.group(2)
-
-        if img_path.startswith(("http://", "https://", "//")):
+        src_img = _resolve_image(img_path, source_file)
+        if src_img is None:
             return match.group(0)
-
-        if WIN_ABS_RE.match(img_path):
-            src_img = Path(_win_to_wsl(img_path))
-        else:
-            src_img = (source_file.parent / img_path.replace("\\", "/")).resolve()
-
-        if not src_img.is_file():
-            log.warning("이미지 누락: %s (in %s)", img_path, source_file.name)
+        new_path = _copy_image(src_img, source_file)
+        if new_path is None:
             return match.group(0)
+        return f"![{alt}]({new_path})"
 
-        ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-        dest_img = ASSETS_DIR / src_img.name
-        shutil.copy2(src_img, dest_img)
-        log.info("이미지 복사: %s -> %s", src_img.name, dest_img.relative_to(REPO_ROOT))
+    def _replace_html(match: re.Match) -> str:
+        img_path = match.group(1)
+        src_img = _resolve_image(img_path, source_file)
+        if src_img is None:
+            return match.group(0)
+        new_path = _copy_image(src_img, source_file)
+        if new_path is None:
+            return match.group(0)
+        return match.group(0).replace(img_path, new_path)
 
-        return f"![{alt}](../../assets/images/{src_img.name})"
-
-    return IMAGE_RE.sub(_replace, content)
+    content = MD_IMAGE_RE.sub(_replace_md, content)
+    content = HTML_IMAGE_RE.sub(_replace_html, content)
+    return content
 
 
 # ── git ──────────────────────────────────────────────────────────────
