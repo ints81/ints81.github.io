@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@fontsource-variable/noto-sans-kr";
+@import "katex/dist/katex.min.css";
 @import "./typography.css";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));

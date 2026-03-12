@@ -20,7 +20,7 @@ from pathlib import Path
 SOURCE_DIR = Path("/mnt/c/Users/ints/Documents/blog_posts")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BLOG_DIR = REPO_ROOT / "src" / "data" / "blog"
-ASSETS_DIR = REPO_ROOT / "src" / "assets" / "images"
+IMAGES_DIR = REPO_ROOT / "public" / "images"
 
 KST = timezone(timedelta(hours=9))
 MD_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
@@ -93,16 +93,16 @@ def _resolve_image(img_path: str, source_file: Path) -> Path | None:
 
 
 def _copy_image(src_img: Path, source_file: Path) -> str | None:
-    """이미지를 assets로 복사하고 새 경로를 반환. 실패 시 None."""
+    """이미지를 public/images/로 복사하고 새 경로를 반환. 실패 시 None."""
     if not src_img.is_file():
         log.warning("이미지 누락: %s (in %s)", src_img, source_file.name)
         return None
 
-    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-    dest_img = ASSETS_DIR / src_img.name
+    IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    dest_img = IMAGES_DIR / src_img.name
     shutil.copy2(src_img, dest_img)
     log.info("이미지 복사: %s -> %s", src_img.name, dest_img.relative_to(REPO_ROOT))
-    return f"../../assets/images/{src_img.name}"
+    return f"/images/{src_img.name}"
 
 
 def process_images(content: str, source_file: Path) -> str:

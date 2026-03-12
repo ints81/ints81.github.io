@@ -16,7 +16,7 @@ jobs:
   build:
     name: Code standards & build
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
 
     strategy:
       matrix:
@@ -39,6 +39,9 @@ jobs:
 
       - name: "📦 Install dependencies"
         run: pnpm install
+
+      - name: "🎭 Install Playwright for Mermaid rendering"
+        run: npx playwright install --with-deps chromium
 
       - name: "🔎 Lint code"
         run: pnpm run lint

@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +35,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Install Playwright for Mermaid rendering
+        run: npx playwright install --with-deps chromium
 
       - name: Build
         run: pnpm run build
