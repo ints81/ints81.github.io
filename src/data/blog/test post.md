@@ -3,7 +3,7 @@ title: "test post"
 pubDatetime: 2026-03-12T00:00:00+09:00
 draft: false
 tags:
-  - 
+  - 일반
 description: ""
 ---
 
