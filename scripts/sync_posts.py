@@ -2,22 +2,22 @@
 """
 블로그 포스트 동기화 스크립트
 
-/mnt/c/Users/ints/Documents/blog_posts 의 마크다운 파일을 감시하여
-블로그 저장소(src/data/blog)로 동기화한다.
+지정한 디렉토리의 마크다운 파일을 블로그 저장소(src/data/blog)로 동기화한다.
 
 - 새 파일: 복사 + 프론트매터 자동 생성 + 이미지 처리
 - 기존 파일: 본문만 갱신 (프론트매터 보존)
 - 변경이 있으면 git commit & push
+
+사용법: python3 sync_posts.py <마크다운 파일이 있는 디렉토리>
 """
 
+import argparse
 import logging
 import re
 import shutil
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-
-SOURCE_DIR = Path("/mnt/c/Users/ints/Documents/blog_posts")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BLOG_DIR = REPO_ROOT / "src" / "data" / "blog"
 IMAGES_DIR = REPO_ROOT / "public" / "images"
@@ -173,15 +173,15 @@ def commit_and_push() -> bool:
 # ── sync ─────────────────────────────────────────────────────────────
 
 
-def sync():
-    if not SOURCE_DIR.exists():
-        log.info("소스 디렉토리 없음: %s", SOURCE_DIR)
+def sync(source_dir: Path):
+    if not source_dir.exists():
+        log.info("소스 디렉토리 없음: %s", source_dir)
         return
 
     BLOG_DIR.mkdir(parents=True, exist_ok=True)
     changed = False
 
-    for src_file in sorted(SOURCE_DIR.glob("*.md")):
+    for src_file in sorted(source_dir.glob("*.md")):
         raw = src_file.read_text(encoding="utf-8")
         processed = process_images(raw, src_file)
         dest_file = BLOG_DIR / src_file.name
@@ -225,4 +225,7 @@ def _update_existing(src_file: Path, dest_file: Path, processed: str) -> bool:
 
 
 if __name__ == "__main__":
-    sync()
+    parser = argparse.ArgumentParser(description="블로그 포스트 동기화")
+    parser.add_argument("source_dir", type=Path, help="마크다운 파일이 있는 디렉토리 경로")
+    args = parser.parse_args()
+    sync(args.source_dir)

@@ -25,13 +25,17 @@ bun run preview
 
 ## 글 작성
 
-`/mnt/c/Users/ints/Documents/blog_posts/` 디렉토리에 마크다운 파일을 작성하면, 동기화 스크립트가 자동으로 블로그에 반영합니다.
+원하는 디렉토리에 마크다운 파일을 작성한 뒤, `sync_posts.py`에 해당 디렉토리 경로를 인자로 전달하면 블로그에 동기화됩니다.
+
+```bash
+python3 scripts/sync_posts.py /path/to/your/posts
+```
 
 동기화 스크립트가 처리하는 작업:
 
-1. 마크다운 파일을 `src/data/blog/`로 복사
+1. 지정한 디렉토리의 마크다운 파일을 `src/data/blog/`로 복사
 2. 프론트매터 자동 생성 (title, pubDatetime 등)
-3. 마크다운 내 로컬 이미지를 `src/assets/images/`로 복사 및 경로 갱신
+3. 마크다운 내 로컬 이미지를 `public/images/`로 복사 및 경로 갱신
 4. 이미 존재하는 파일은 프론트매터를 보존하고 본문만 갱신
 5. 변경 사항이 있으면 자동으로 git commit & push
 
@@ -60,20 +64,14 @@ Personal Access Token은 [GitHub Settings > Tokens](https://github.com/settings/
 동기화 스크립트를 5분 간격으로 자동 실행하려면:
 
 ```bash
-# 등록
-./scripts/install-cron.sh
+# 등록 (디렉토리 경로 필수)
+./scripts/install-cron.sh install /path/to/your/posts
 
 # 상태 확인
 ./scripts/install-cron.sh status
 
 # 해제
 ./scripts/install-cron.sh uninstall
-```
-
-수동 실행도 가능합니다:
-
-```bash
-python3 scripts/sync_posts.py
 ```
 
 로그는 `scripts/sync_posts.log`에 기록됩니다.
