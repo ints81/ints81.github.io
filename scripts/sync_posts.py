@@ -68,6 +68,16 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
+WIN_ABS_RE = re.compile(r"^[A-Za-z]:[/\\]")
+
+
+def _win_to_wsl(path: str) -> str:
+    """Windows 절대 경로를 WSL 경로로 변환. (C:\\Users\\... -> /mnt/c/Users/...)"""
+    path = path.replace("\\", "/")
+    drive = path[0].lower()
+    return f"/mnt/{drive}{path[2:]}"
+
+
 def process_images(content: str, source_file: Path) -> str:
     """마크다운에서 로컬 이미지를 찾아 assets로 복사하고 경로를 갱신."""
 
@@ -77,7 +87,11 @@ def process_images(content: str, source_file: Path) -> str:
         if img_path.startswith(("http://", "https://", "//")):
             return match.group(0)
 
-        src_img = (source_file.parent / img_path).resolve()
+        if WIN_ABS_RE.match(img_path):
+            src_img = Path(_win_to_wsl(img_path))
+        else:
+            src_img = (source_file.parent / img_path.replace("\\", "/")).resolve()
+
         if not src_img.is_file():
             log.warning("이미지 누락: %s (in %s)", img_path, source_file.name)
             return match.group(0)

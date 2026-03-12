@@ -15,4 +15,4 @@ description: ""
 
 제 VDOT 사진입니다.
 
-![vdot](C:\Users\ints\Documents\blog_posts\assets\vdot.png)
+![vdot](../../assets/images/vdot.png)
