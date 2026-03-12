@@ -1,6 +1,6 @@
 ---
 title: "블로그를 시작하며"
-pubDatetime: 2026-03-12T00:00:00Z
+pubDatetime: 2026-03-12T00:00:00+09:00
 draft: false
 tags:
   - 일상
