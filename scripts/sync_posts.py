@@ -54,7 +54,7 @@ def make_frontmatter(title: str) -> str:
         f"pubDatetime: {pub}\n"
         "draft: false\n"
         "tags:\n"
-        "  - \n"
+        "  - 일반\n"
         'description: ""\n'
         "---\n"
     )
