@@ -27,7 +27,9 @@ MD_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 HTML_IMAGE_RE = re.compile(r'<img\s[^>]*src=["\']([^"\']+)["\'][^>]*/?\s*>', re.IGNORECASE)
 FRONTMATTER_RE = re.compile(r"^---[ \t]*\n(.*?\n)---[ \t]*\n", re.DOTALL)
 
-LOG_FILE = REPO_ROOT / "scripts" / "sync_posts.log"
+LOG_DIR = Path.home() / ".logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_FILE = LOG_DIR / "sync_posts.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(message)s",
@@ -48,7 +50,7 @@ def title_from_filename(name: str) -> str:
 
 
 def make_frontmatter(title: str) -> str:
-    pub = datetime.now(KST).strftime("%Y-%m-%dT00:00:00+09:00")
+    pub = datetime.now(KST).strftime("%Y-%m-%dT%H:%M:%S+09:00")
     return (
         "---\n"
         f'title: "{title}"\n'

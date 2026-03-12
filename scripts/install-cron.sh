@@ -4,7 +4,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PYTHON="$(which python3)"
 SYNC_SCRIPT="$SCRIPT_DIR/sync_posts.py"
-LOG_FILE="$SCRIPT_DIR/sync_posts.log"
+LOG_FILE="$HOME/.logs/sync_posts.log"
 CRON_JOB="*/5 * * * * $PYTHON $SYNC_SCRIPT >> $LOG_FILE 2>&1"
 MARKER="sync_posts.py"
 
