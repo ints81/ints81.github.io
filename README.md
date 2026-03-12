@@ -5,6 +5,8 @@
 ## 설치
 
 ```bash
+git clone https://github.com/ints81/ints81.github.io.git blog
+cd blog
 bun install
 ```
 
