@@ -159,9 +159,9 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
-# tags: 블록 - 다음 최상위 키(category, description 등) 전까지 매칭 (잘못된 들여쓰기 포함)
+# tags: 블록 - list item 줄만 매칭 (- 로 시작하는 줄), 다음 키 직전까지
 TAGS_BLOCK_RE = re.compile(
-    r"^tags:\s*(?:\n(?:.+\n)*?)?(?=\n(?:category|description|series|ogImage|draft|title|pubDatetime|---)\s*:|\n---|\Z)",
+    r"^tags:\s*\n(?:(?!\n?\s*(?:category|description|series|ogImage|draft|title|pubDatetime)\s*:).+\n)*(?=\n\s*(?:category|description|series|ogImage|draft|title|pubDatetime)\s*:|\n---|\Z)",
     re.MULTILINE,
 )
 # tags: [a,b] 플로우 형태 (한 줄)
