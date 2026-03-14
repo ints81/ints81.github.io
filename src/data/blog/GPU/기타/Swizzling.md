@@ -19,6 +19,11 @@ tags:
   - Swizzling
   - Tensor Core
   - TMA
+tags:
+  - GPU
+  - Swizzling
+  - Tensor Core
+  - TMA
 description: ""
 ---
 
