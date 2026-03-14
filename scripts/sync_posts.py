@@ -159,9 +159,10 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
-# tags: 블록 - list item 줄만 매칭 (- 로 시작하는 줄), 다음 키 직전까지
+# tags: 블록 - tags: 부터 다음 최상위 키 직전까지 (non-greedy)
+# lookahead: 매칭 후 위치가 "category:" 등 키 줄 시작이므로 \n 불필요
 TAGS_BLOCK_RE = re.compile(
-    r"^tags:\s*\n(?:(?!\n?\s*(?:category|description|series|ogImage|draft|title|pubDatetime)\s*:).+\n)*(?=\n\s*(?:category|description|series|ogImage|draft|title|pubDatetime)\s*:|\n---|\Z)",
+    r"^tags:\s*\n[\s\S]*?(?=(?:category|description|series|ogImage|draft|title|pubDatetime|modDatetime)\s*:|\n---|^---|\Z)",
     re.MULTILINE,
 )
 # tags: [a,b] 플로우 형태 (한 줄)
@@ -188,6 +189,8 @@ def merge_tags_series_into_frontmatter(
         new_tags_block = "tags:\n" + "\n".join(f"  - {t}" for t in source_tags) + "\n"
         if TAGS_BLOCK_RE.search(result):
             result = TAGS_BLOCK_RE.sub(new_tags_block, result, count=1)
+        elif TAGS_FLOW_RE.search(result):
+            result = TAGS_FLOW_RE.sub(new_tags_block, result, count=1)
         else:
             # tags가 없으면 description 앞에 삽입 (없으면 맨 뒤)
             if "\ndescription:" in result:

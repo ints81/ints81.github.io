@@ -6,6 +6,7 @@ tags:
   - GPU
   - Swizzling
   - Tensor Core
+  - TMA
 category:
   parent: GPU
   child: 기타
