@@ -1,0 +1,41 @@
+---
+import { getPath } from "@/utils/getPath";
+import type { CollectionEntry } from "astro:content";
+
+type Props = {
+  seriesSlug: string;
+  seriesName: string;
+  posts: { post: CollectionEntry<"blog">; order: number }[];
+  currentPostId: string;
+};
+
+const { seriesSlug, seriesName, posts, currentPostId } = Astro.props;
+const sortedPosts = [...posts].sort((a, b) => a.order - b.order);
+---
+
+<aside id="series-sidebar" class="fixed top-40 hidden max-h-[calc(100vh-12rem)] w-48 overflow-y-auto xl:block">
+  <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground/50">
+    <a href={`/series/${seriesSlug}/`} class="hover:text-accent">
+      {seriesName}
+    </a>
+  </h2>
+  <ul class="space-y-0.5 border-l border-border pl-3">
+    {sortedPosts.map(({ post, order }) => {
+      const path = getPath(post.id, post.filePath);
+      const isCurrent = post.id === currentPostId;
+      return (
+        <li>
+          <a
+            href={path}
+            class:list={[
+              "block py-0.5 text-sm leading-snug transition-colors hover:text-accent",
+              isCurrent ? "text-accent font-medium" : "text-foreground/50",
+            ]}
+          >
+            {order}. {post.data.title}
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+</aside>

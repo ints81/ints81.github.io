@@ -49,18 +49,103 @@ def title_from_filename(name: str) -> str:
     return Path(name).stem.replace("-", " ").replace("_", " ")
 
 
-def make_frontmatter(title: str) -> str:
+def category_from_path(src_file: Path, source_dir: Path) -> tuple[str, str]:
+    """
+    소스 파일의 디렉토리 경로에서 category (parent, child) 추출.
+    - 경로가 parent/child/file.md → (parent, child)
+    - 경로가 parent/file.md → (parent, 기타)
+    - 경로가 file.md (루트) → (일상, 기타)
+    """
+    try:
+        rel = src_file.parent.relative_to(source_dir)
+        parts = [p for p in rel.parts if not p.startswith("_")]
+        if len(parts) >= 2:
+            return parts[0], parts[1]
+        if len(parts) == 1:
+            return parts[0], "기타"
+    except ValueError:
+        pass
+    return "일상", "기타"
+
+
+TAGS_RE = re.compile(r"^tags:\s*$", re.MULTILINE)
+TAGS_ITEM_RE = re.compile(r"^[\s-]+(.+)$", re.MULTILINE)
+SERIES_NAME_RE = re.compile(r"^series:.*?^[\s]*name:\s*['\"]?([^'\"]+)['\"]?", re.MULTILINE | re.DOTALL)
+SERIES_ORDER_RE = re.compile(r"^series:.*?^[\s]*order:\s*(\d+)", re.MULTILINE | re.DOTALL)
+
+
+def parse_source_frontmatter(fm_text: str | None) -> tuple[list[str] | None, dict | None]:
+    """
+    소스 frontmatter에서 tags, series 파싱.
+    반환: (tags 리스트 또는 None, series 딕셔너리 또는 None)
+    """
+    if not fm_text:
+        return None, None
+    tags = None
+    series = None
+    try:
+        import yaml
+        data = yaml.safe_load(fm_text)
+        if data:
+            if isinstance(data.get("tags"), list) and data["tags"]:
+                tags = [str(t).strip() for t in data["tags"] if t]
+            s = data.get("series")
+            if isinstance(s, dict) and s.get("name") and "order" in s:
+                series = {"name": str(s["name"]).strip(), "order": int(s["order"])}
+    except ImportError:
+        pass
+    except Exception:
+        pass
+    if tags is None:
+        m = TAGS_RE.search(fm_text)
+        if m:
+            rest = fm_text[m.end() :].split("\n")
+            found = []
+            for line in rest[:20]:
+                if line.strip() and not line[0].isalpha() and "-" in line[:2]:
+                    tag = line.lstrip("- ").strip().strip("'\"").split("#")[0].strip()
+                    if tag:
+                        found.append(tag)
+                elif line and not line.startswith(" ") and not line.startswith("-"):
+                    break
+            if found:
+                tags = found
+    if series is None:
+        mn = SERIES_NAME_RE.search(fm_text)
+        mo = SERIES_ORDER_RE.search(fm_text)
+        if mn and mo:
+            series = {"name": mn.group(1).strip(), "order": int(mo.group(1))}
+    return tags, series
+
+
+def make_frontmatter(
+    title: str,
+    category_parent: str,
+    category_child: str,
+    tags: list[str] | None = None,
+    series: dict | None = None,
+) -> str:
     pub = datetime.now(KST).strftime("%Y-%m-%dT%H:%M:%S+09:00")
-    return (
-        "---\n"
-        f'title: "{title}"\n'
-        f"pubDatetime: {pub}\n"
-        "draft: false\n"
-        "tags:\n"
-        "  - 일반\n"
-        'description: ""\n'
-        "---\n"
-    )
+    tag_list = tags if tags else ["일반"]
+    lines = [
+        "---",
+        f'title: "{title}"',
+        f"pubDatetime: {pub}",
+        "draft: false",
+        "tags:",
+        *[f"  - {t}" for t in tag_list],
+        "category:",
+        f"  parent: {category_parent}",
+        f"  child: {category_child}",
+        'description: ""',
+    ]
+    if series:
+        lines.extend([
+            "series:",
+            f"  name: {series['name']}",
+            f"  order: {series['order']}",
+        ])
+    return "\n".join(lines) + "\n---\n"
 
 
 def split_frontmatter(text: str) -> tuple[str | None, str]:
@@ -181,15 +266,19 @@ def sync(source_dir: Path):
     BLOG_DIR.mkdir(parents=True, exist_ok=True)
     changed = False
 
-    for src_file in sorted(source_dir.glob("*.md")):
+    for src_file in sorted(source_dir.rglob("*.md")):
         raw = src_file.read_text(encoding="utf-8")
         processed = process_images(raw, src_file)
-        dest_file = BLOG_DIR / src_file.name
+        try:
+            rel_path = src_file.relative_to(source_dir)
+        except ValueError:
+            rel_path = src_file.name
+        dest_file = BLOG_DIR / rel_path
 
         if dest_file.exists():
             changed |= _update_existing(src_file, dest_file, processed)
         else:
-            changed |= _create_new(src_file, dest_file, processed)
+            changed |= _create_new(src_file, dest_file, processed, source_dir)
 
     if changed:
         commit_and_push()
@@ -197,10 +286,13 @@ def sync(source_dir: Path):
         log.info("변경 사항 없음")
 
 
-def _create_new(src_file: Path, dest_file: Path, processed: str) -> bool:
-    _, body = split_frontmatter(processed)
+def _create_new(src_file: Path, dest_file: Path, processed: str, source_dir: Path) -> bool:
+    fm_raw, body = split_frontmatter(processed)
     title = title_from_filename(src_file.name)
-    fm = make_frontmatter(title)
+    parent, child = category_from_path(src_file, source_dir)
+    tags, series = parse_source_frontmatter(fm_raw)
+    fm = make_frontmatter(title, parent, child, tags=tags, series=series)
+    dest_file.parent.mkdir(parents=True, exist_ok=True)
     dest_file.write_text(fm + "\n" + body.lstrip("\n"), encoding="utf-8")
     log.info("새 글 추가: %s", src_file.name)
     return True

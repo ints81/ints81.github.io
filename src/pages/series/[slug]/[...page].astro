@@ -1,0 +1,48 @@
+---
+import type { GetStaticPathsOptions } from "astro";
+import { getCollection } from "astro:content";
+import Main from "@/layouts/Main.astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Card from "@/components/Card.astro";
+import Pagination from "@/components/Pagination.astro";
+import getSeriesFromPosts from "@/utils/getSeriesFromPosts";
+import getPostsBySeries from "@/utils/getPostsBySeries";
+import { SITE } from "@/config";
+
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  const posts = await getCollection("blog");
+  const seriesList = getSeriesFromPosts(posts);
+
+  return seriesList.flatMap((series) => {
+    const seriesPosts = getPostsBySeries(posts, series.slug);
+    return paginate(seriesPosts, {
+      params: { slug: series.slug },
+      props: { seriesName: series.name },
+      pageSize: SITE.postPerPage,
+    });
+  });
+}
+
+const { slug } = Astro.params;
+const { page, seriesName } = Astro.props;
+---
+
+<Layout title={`${seriesName} | Series | ${SITE.title}`}>
+  <Header />
+  <Main
+    pageTitle={seriesName}
+    pageDesc={`All posts in the "${seriesName}" series.`}
+  >
+    <ul>
+      {page.data.map((data) => (
+        <Card {...data} />
+      ))}
+    </ul>
+  </Main>
+
+  <Pagination {page} />
+
+  <Footer noMarginTop={page.lastPage > 1} />
+</Layout>

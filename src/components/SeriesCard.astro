@@ -1,0 +1,41 @@
+---
+import { getPath } from "@/utils/getPath";
+import type { CollectionEntry } from "astro:content";
+
+type Props = {
+  seriesSlug: string;
+  seriesName: string;
+  posts: { post: CollectionEntry<"blog">; order: number }[];
+  currentPostId: string;
+};
+
+const { seriesSlug, seriesName, posts, currentPostId } = Astro.props;
+const sortedPosts = [...posts].sort((a, b) => a.order - b.order);
+---
+
+<details class="toc-card not-prose">
+  <summary>
+    <a href={`/series/${seriesSlug}/`} class="hover:no-underline" onclick="(e)=>e.stopPropagation()">
+      {seriesName}
+    </a>
+  </summary>
+  <ul>
+    {sortedPosts.map(({ post, order }) => {
+      const path = getPath(post.id, post.filePath);
+      const isCurrent = post.id === currentPostId;
+      return (
+        <li>
+          <a
+            href={path}
+            class:list={[
+              "text-sm font-medium no-underline transition-colors hover:text-accent",
+              isCurrent ? "text-accent font-semibold" : "text-foreground/50",
+            ]}
+          >
+            {order}. {post.data.title}
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+</details>

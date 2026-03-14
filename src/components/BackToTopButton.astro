@@ -1,87 +1,94 @@
 ---
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconArrowNarrowUp from "@/assets/icons/IconArrowNarrowUp.svg";
+
+type Props = {
+  variant?: "default" | "sidebar";
+};
+
+const { variant = "default" } = Astro.props;
 ---
 
 <div
-  id="btt-btn-container"
+  class="btt-btn-container"
+  data-variant={variant}
   class:list={[
-    "fixed end-4 bottom-8 z-50",
-    "md:sticky md:end-auto md:float-end md:me-1",
-    "translate-y-14 opacity-0 transition duration-500",
+    variant === "sidebar"
+      ? ["mt-4", "translate-y-0 opacity-100"]
+      : [
+          "fixed right-16 bottom-8 z-[9999]",
+          "translate-y-14 opacity-0 transition duration-500",
+        ],
   ]}
 >
   <button
     data-button="back-to-top"
     class:list={[
-      "group relative bg-background px-2 py-1",
-      "size-14 rounded-full shadow-xl",
-      "md:h-8 md:w-fit md:rounded-md md:shadow-none md:focus-visible:rounded-none",
-      "md:bg-background/35 md:bg-clip-padding md:backdrop-blur-lg",
+      "group relative flex items-center justify-center gap-1.5 bg-muted/40 border border-border",
+      "size-14 rounded-xl shadow-xl",
+      "md:h-10 md:min-w-[10rem] md:px-5 md:py-2 md:rounded-lg md:shadow-none md:focus-visible:rounded-none",
+      "md:bg-muted/40 md:backdrop-blur-sm",
     ]}
   >
     <span
-      id="progress-indicator"
-      class="absolute inset-0 -z-10 block size-14 scale-110 rounded-full bg-transparent md:hidden md:h-8 md:rounded-md"
+      class="progress-indicator absolute inset-0 -z-10 block size-14 scale-110 rounded-xl bg-transparent md:hidden"
     ></span>
-    <IconChevronLeft class="inline-block rotate-90 md:hidden" />
-    <span class="sr-only text-sm group-hover:text-accent md:not-sr-only">
-      <IconArrowNarrowUp class="inline-block size-4" />
+    <IconChevronLeft class="inline-block size-5 shrink-0 rotate-90 md:hidden" />
+    <span class="sr-only text-sm group-hover:text-accent md:not-sr-only md:inline-flex md:items-center md:gap-1.5 md:whitespace-nowrap">
+      <IconArrowNarrowUp class="inline-block size-4 shrink-0" />
       Back To Top
     </span>
   </button>
 </div>
 
 <script is:inline data-astro-rerun>
-  /** Scrolls the document to the top when
-   * the "Back to Top" button is clicked. */
   function backToTop() {
     const rootElement = document.documentElement;
-    const btnContainer = document.querySelector("#btt-btn-container");
-    const backToTopBtn = document.querySelector("[data-button='back-to-top']");
-    const progressIndicator = document.querySelector("#progress-indicator");
+    document.querySelectorAll(".btt-btn-container").forEach(btnContainer => {
+      const backToTopBtn = btnContainer.querySelector("[data-button='back-to-top']");
+      const progressIndicator = btnContainer.querySelector(".progress-indicator");
+      if (!backToTopBtn || !progressIndicator) return;
 
-    if (!rootElement || !btnContainer || !backToTopBtn || !progressIndicator)
-      return;
+      backToTopBtn.addEventListener("click", () => {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+      });
 
-    // Attach click event handler for back-to-top button
-    backToTopBtn.addEventListener("click", () => {
-      document.body.scrollTop = 0; // For Safari
-      document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
-    });
+      const isSidebar = btnContainer?.dataset?.variant === "sidebar";
+      let lastVisible = null;
+      function handleScroll() {
+        const scrollTotal = rootElement.scrollHeight - rootElement.clientHeight;
+        const scrollTop = rootElement.scrollTop;
+        const scrollPercent = Math.floor((scrollTop / scrollTotal) * 100);
 
-    // Handle button visibility according to scroll position
-    let lastVisible = null;
-    function handleScroll() {
-      const scrollTotal = rootElement.scrollHeight - rootElement.clientHeight;
-      const scrollTop = rootElement.scrollTop;
-      const scrollPercent = Math.floor((scrollTop / scrollTotal) * 100);
+        progressIndicator.style.setProperty(
+          "background-image",
+          `conic-gradient(var(--accent), var(--accent) ${scrollPercent}%, transparent ${scrollPercent}%)`
+        );
 
-      progressIndicator.style.setProperty(
-        "background-image",
-        `conic-gradient(var(--accent), var(--accent) ${scrollPercent}%, transparent ${scrollPercent}%)`
-      );
+        if (isSidebar) return;
 
-      const isVisible = scrollTop / scrollTotal > 0.3;
-
-      if (isVisible !== lastVisible) {
-        btnContainer.classList.toggle("opacity-100", isVisible);
-        btnContainer.classList.toggle("translate-y-0", isVisible);
-        btnContainer.classList.toggle("opacity-0", !isVisible);
-        btnContainer.classList.toggle("translate-y-14", !isVisible);
-        lastVisible = isVisible;
+        const isVisible = scrollTop / scrollTotal > 0.3;
+        if (isVisible !== lastVisible) {
+          btnContainer.classList.toggle("opacity-100", isVisible);
+          btnContainer.classList.toggle("translate-y-0", isVisible);
+          btnContainer.classList.toggle("opacity-0", !isVisible);
+          btnContainer.classList.toggle("translate-y-14", !isVisible);
+          lastVisible = isVisible;
+        }
       }
-    }
 
-    let ticking = false;
-    document.addEventListener("scroll", () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          handleScroll();
-          ticking = false;
-        });
-        ticking = true;
-      }
+      let ticking = false;
+      document.addEventListener("scroll", () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            handleScroll();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
+      handleScroll();
     });
   }
   backToTop();

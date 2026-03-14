@@ -1,0 +1,100 @@
+---
+import { getCollection } from "astro:content";
+import Main from "@/layouts/Main.astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import IconFolder from "@/assets/icons/IconFolder.svg";
+import IconFolderOpen from "@/assets/icons/IconFolderOpen.svg";
+import IconChevronDown from "@/assets/icons/IconChevronDown.svg";
+import getCategoriesFromPosts from "@/utils/getCategoriesFromPosts";
+import { SITE } from "@/config";
+
+const posts = await getCollection("blog");
+const categories = getCategoriesFromPosts(posts);
+---
+
+<Layout title={`Categories | ${SITE.title}`}>
+  <Header />
+  <Main pageTitle="Categories" pageDesc="Browse posts by category.">
+    <ul class="space-y-1">
+      {categories.map((node) => {
+        const hasChildren = node.children.length > 0;
+        return (
+          <li>
+            {hasChildren ? (
+              <details class="group">
+                <summary
+                  class="flex cursor-pointer list-none items-center gap-2 py-2 text-base font-medium hover:text-accent [&::-webkit-details-marker]:hidden"
+                >
+                  <IconChevronDown
+                    class="size-4 shrink-0 transition-transform group-open:rotate-0"
+                    style="transform: rotate(-90deg)"
+                  />
+                  <span class="relative size-4 shrink-0">
+                    <IconFolder
+                      class="absolute inset-0 size-4 opacity-70 transition-opacity group-open:opacity-0"
+                      aria-hidden="true"
+                    />
+                    <IconFolderOpen
+                      class="absolute inset-0 size-4 opacity-0 transition-opacity group-open:opacity-70"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <a
+                    href={`/categories/${node.parentSlug}/`}
+                    class="flex-1 hover:underline category-parent-link"
+                  >
+                    {node.parent}
+                  </a>
+                  <span class="text-sm text-foreground/60">
+                    {node.totalPostCount} posts
+                  </span>
+                </summary>
+                <ul class="ms-6 mt-1 space-y-1 ps-4">
+                  {node.children.map((child) => (
+                    <li class="flex items-center gap-2 py-1">
+                      <IconFolder class="size-3.5 shrink-0 opacity-60" />
+                      <a
+                        href={`/categories/${node.parentSlug}/${child.slug}/`}
+                        class="text-sm hover:text-accent hover:underline"
+                      >
+                        {child.name}
+                      </a>
+                      <span class="text-xs text-foreground/60">
+                        {child.postCount}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : (
+              <a
+                href={`/categories/${node.parentSlug}/`}
+                class="flex items-center gap-2 py-2 text-base font-medium hover:text-accent hover:underline"
+              >
+                <IconFolder class="size-4 shrink-0 opacity-70" />
+                <span>{node.parent}</span>
+                <span class="text-sm text-foreground/60">
+                  {node.totalPostCount} posts
+                </span>
+              </a>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  </Main>
+  <Footer />
+</Layout>
+
+<script>
+  document.querySelectorAll(".category-parent-link").forEach(link => {
+    link.addEventListener("click", (e) => e.stopPropagation());
+  });
+  document.addEventListener("astro:page-load", () => {
+    document.querySelectorAll(".category-parent-link").forEach(link => {
+      link.addEventListener("click", (e) => e.stopPropagation());
+    });
+  });
+</script>

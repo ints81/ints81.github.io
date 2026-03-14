@@ -4,6 +4,12 @@ pubDatetime: 2026-03-12T00:00:00+09:00
 draft: false
 tags:
   - 일상
+category:
+  parent: 일상
+  child: 소개
+series:
+  name: 블로그 시작하기
+  order: 1
 description: "새로운 블로그의 첫 번째 글입니다."
 ---
 

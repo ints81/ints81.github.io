@@ -1,0 +1,36 @@
+---
+import { getCollection } from "astro:content";
+import Main from "@/layouts/Main.astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import IconFolder from "@/assets/icons/IconFolder.svg";
+import getSeriesFromPosts from "@/utils/getSeriesFromPosts";
+import { SITE } from "@/config";
+
+const posts = await getCollection("blog");
+const seriesList = getSeriesFromPosts(posts);
+---
+
+<Layout title={`Series | ${SITE.title}`}>
+  <Header />
+  <Main pageTitle="Series" pageDesc="Browse posts by series.">
+    <ul class="space-y-1">
+      {seriesList.map((series) => (
+        <li>
+          <a
+            href={`/series/${series.slug}/`}
+            class="flex items-center gap-2 py-2 text-base font-medium hover:text-accent hover:underline"
+          >
+            <IconFolder class="size-4 shrink-0 opacity-70" />
+            <span>{series.name}</span>
+            <span class="text-sm text-foreground/60">
+              {series.posts.length} posts
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </Main>
+  <Footer />
+</Layout>

@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from "astro:transitions";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
+import BackToTopButton from "@/components/BackToTopButton.astro";
 import { SITE } from "@/config";
 import "@/styles/global.css";
 
@@ -162,6 +163,7 @@ const structuredData = {
   </head>
   <body>
     <slot />
+    <BackToTopButton />
 
     <!-- Load full theme logic -->
     <script src="../scripts/theme.ts"></script>

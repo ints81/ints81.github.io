@@ -1,4 +1,8 @@
 ---
+import { getCollection } from "astro:content";
+import getCategoriesFromPosts from "@/utils/getCategoriesFromPosts";
+import getSeriesFromPosts from "@/utils/getSeriesFromPosts";
+
 // Remove current url path and remove trailing slash if exists
 const currentUrlPath = Astro.url.pathname.replace(/\/+$/, "");
 
@@ -6,21 +10,124 @@ const currentUrlPath = Astro.url.pathname.replace(/\/+$/, "");
 // eg: /tags/tailwindcss => ['tags', 'tailwindcss']
 const breadcrumbList = currentUrlPath.split("/").slice(1);
 
+// pathSegments: href 생성용 (실제 URL 경로)
+// displayList: 화면 표시용
+let pathSegments = [...breadcrumbList];
+let displayList = [...breadcrumbList];
+
 // if breadcrumb is Home > Posts > 1 <etc>
 // replace Posts with Posts (page number)
 if (breadcrumbList[0] === "posts") {
-  breadcrumbList.splice(0, 2, `Posts (page ${breadcrumbList[1] || 1})`);
+  const page = breadcrumbList[1] || 1;
+  displayList = ["posts", `Posts (page ${page})`];
+  pathSegments = breadcrumbList;
 }
 
 // if breadcrumb is Home > Tags > [tag] > [page] <etc>
 // replace [tag] > [page] with [tag] (page number)
 if (breadcrumbList[0] === "tags" && !isNaN(Number(breadcrumbList[2]))) {
-  breadcrumbList.splice(
-    1,
-    3,
-    `${breadcrumbList[1]} ${Number(breadcrumbList[2]) === 1 ? "" : "(page " + breadcrumbList[2] + ")"}`
-  );
+  displayList = [
+    "tags",
+    `${breadcrumbList[1]} ${Number(breadcrumbList[2]) === 1 ? "" : "(page " + breadcrumbList[2] + ")"}`,
+  ];
+  pathSegments = breadcrumbList;
 }
+
+// if breadcrumb is Home > categories > [parent] > [child] > [page] <etc>
+// - slug 대신 실제 카테고리 이름 표시 (일-상 → 일상)
+// - 부모+자식인 경우 '부모 > 자식' 형태로 표시
+if (breadcrumbList[0] === "categories" && breadcrumbList.length > 1) {
+  const posts = await getCollection("blog");
+  const categories = getCategoriesFromPosts(posts);
+  const parentSlugToName = new Map(categories.map((c) => [c.parentSlug, c.parent]));
+  const childSlugToName = new Map<string, string>();
+  for (const node of categories) {
+    for (const ch of node.children) {
+      childSlugToName.set(`${node.parentSlug}/${ch.slug}`, ch.name);
+    }
+  }
+
+  const rawSegments = [...breadcrumbList];
+  let hasPageSuffix = false;
+  let pageNum = "";
+
+  // page 번호 처리
+  const lastSeg = rawSegments[rawSegments.length - 1];
+  if (!isNaN(Number(lastSeg))) {
+    rawSegments.pop();
+    pageNum = lastSeg;
+    if (Number(lastSeg) > 1) hasPageSuffix = true;
+  }
+
+  const parentSlug = rawSegments.length > 1 ? decodeURIComponent(rawSegments[1]) : "";
+  const parentName = parentSlugToName.get(parentSlug) ?? parentSlug;
+
+  // pathSegments와 displayList는 길이가 같아야 getBreadcrumbHref(index)가 올바르게 동작
+  if (rawSegments.length <= 1) {
+    pathSegments = hasPageSuffix ? ["categories", pageNum] : ["categories"];
+    displayList = hasPageSuffix ? ["categories", `categories (page ${pageNum})`] : ["categories"];
+  } else if (rawSegments.length === 2) {
+    pathSegments = hasPageSuffix
+      ? ["categories", parentSlug, pageNum]
+      : ["categories", parentSlug];
+    displayList = [
+      "categories",
+      hasPageSuffix ? `${parentName} (page ${pageNum})` : parentName,
+    ];
+  } else {
+    const childSlug = decodeURIComponent(rawSegments[2]);
+    const childKey = `${parentSlug}/${childSlug}`;
+    const childName = childSlugToName.get(childKey) ?? childSlug;
+    const combined = `${parentName} > ${childName}`;
+    // 부모+자식 병합 시 pathSegments[1]에 parentSlug/childSlug를 넣어 href가 올바르게 생성되도록
+    pathSegments = hasPageSuffix
+      ? ["categories", `${parentSlug}/${childSlug}`, pageNum]
+      : ["categories", `${parentSlug}/${childSlug}`];
+    displayList = [
+      "categories",
+      hasPageSuffix ? `${combined} (page ${pageNum})` : combined,
+    ];
+  }
+}
+
+// if breadcrumb is Home > series > [slug] > [page] <etc>
+if (breadcrumbList[0] === "series" && breadcrumbList.length > 1) {
+  const posts = await getCollection("blog");
+  const getSeriesFromPosts = (await import("@/utils/getSeriesFromPosts")).default;
+  const allSeries = getSeriesFromPosts(posts);
+  const seriesSlugToName = new Map(allSeries.map((s) => [s.slug, s.name]));
+
+  const rawSegments = [...breadcrumbList];
+  let hasPageSuffix = false;
+  let pageNum = "";
+
+  const lastSeg = rawSegments[rawSegments.length - 1];
+  if (!isNaN(Number(lastSeg))) {
+    rawSegments.pop();
+    pageNum = lastSeg;
+    if (Number(lastSeg) > 1) hasPageSuffix = true;
+  }
+
+  const seriesSlug = rawSegments.length > 1 ? decodeURIComponent(rawSegments[1]) : "";
+  const seriesName = seriesSlugToName.get(seriesSlug) ?? seriesSlug;
+
+  if (rawSegments.length <= 1) {
+    pathSegments = hasPageSuffix ? ["series", pageNum] : ["series"];
+    displayList = hasPageSuffix ? ["series", `series (page ${pageNum})`] : ["series"];
+  } else {
+    pathSegments = hasPageSuffix
+      ? ["series", seriesSlug, pageNum]
+      : ["series", seriesSlug];
+    displayList = [
+      "series",
+      hasPageSuffix ? `${seriesName} (page ${pageNum})` : seriesName,
+    ];
+  }
+}
+
+// Build cumulative path for nested routes (categories, etc.)
+const getBreadcrumbHref = (idx: number) =>
+  `/${pathSegments.slice(0, idx + 1).join("/")}/`;
 ---
 
 <nav class="app-layout mt-8 mb-1" aria-label="breadcrumb">
@@ -32,21 +139,20 @@ if (breadcrumbList[0] === "tags" && !isNaN(Number(breadcrumbList[2]))) {
       <span aria-hidden="true" class="opacity-80">&raquo;</span>
     </li>
     {
-      breadcrumbList.map((breadcrumb, index) =>
-        index + 1 === breadcrumbList.length ? (
+      displayList.map((breadcrumb, index) =>
+        index + 1 === displayList.length ? (
           <li>
             <span
               class:list={["capitalize opacity-75", { lowercase: index > 0 }]}
               aria-current="page"
             >
-              {/* make the last part lowercase in Home > Tags > some-tag */}
               {decodeURIComponent(breadcrumb)}
             </span>
           </li>
         ) : (
           <li>
-            <a href={`/${breadcrumb}/`} class="capitalize opacity-70">
-              {breadcrumb}
+            <a href={getBreadcrumbHref(index)} class="capitalize opacity-70">
+              {decodeURIComponent(breadcrumb)}
             </a>
             <span aria-hidden="true">&raquo;</span>
           </li>

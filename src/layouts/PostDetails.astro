@@ -7,10 +7,12 @@ import Tag from "@/components/Tag.astro";
 import Datetime from "@/components/Datetime.astro";
 import EditPost from "@/components/EditPost.astro";
 import BackButton from "@/components/BackButton.astro";
-import BackToTopButton from "@/components/BackToTopButton.astro";
 import Giscus from "@/components/Giscus.astro";
 import TableOfContents from "@/components/TableOfContents.astro";
+import SeriesCard from "@/components/SeriesCard.astro";
+import SeriesSidebar from "@/components/SeriesSidebar.astro";
 import { getPath } from "@/utils/getPath";
+import getSeriesFromPosts from "@/utils/getSeriesFromPosts";
 import { slugifyStr } from "@/utils/slugify";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
@@ -81,11 +83,17 @@ const currentPostIndex = allPosts.findIndex(a => a.id === post.id);
 const prevPost = currentPostIndex !== 0 ? allPosts[currentPostIndex - 1] : null;
 const nextPost =
   currentPostIndex !== allPosts.length ? allPosts[currentPostIndex + 1] : null;
+
+/* ========== Series ========== */
+const allSeries = getSeriesFromPosts(posts);
+const currentSeries = post.data.series
+  ? allSeries.find(s => s.slug === slugifyStr(post.data.series!.name))
+  : null;
 ---
 
 <Layout {...layoutProps}>
   <Header />
-  <BackButton />
+  <BackButton category={post.data.category} />
   <main
     id="main-content"
     class:list={["app-layout pb-12", { "mt-8": !SITE.showBackButton }]}
@@ -97,18 +105,31 @@ const nextPost =
     >
       {title}
     </h1>
-    <div class="mt-3 mb-2 flex items-center gap-2">
-      <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
-      <span
-        aria-hidden="true"
-        class:list={[
-          "max-sm:hidden",
-          { hidden: !SITE.editPost.enabled || hideEditPost },
-        ]}>|</span
-      >
-      <EditPost {hideEditPost} {post} class="max-sm:hidden" />
+    <div class="mt-3 mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div class="flex items-center gap-2">
+        <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
+        <span
+          aria-hidden="true"
+          class:list={[
+            "max-sm:hidden",
+            { hidden: !SITE.editPost.enabled || hideEditPost },
+          ]}>|</span
+        >
+        <EditPost {hideEditPost} {post} class="max-sm:hidden" />
+      </div>
+      <ul class="flex flex-wrap justify-end gap-2">
+        {tags.map(tag => <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />)}
+      </ul>
     </div>
-    <div class="mt-8 xl:hidden">
+    <div class="mt-8 xl:hidden space-y-4">
+      {currentSeries && (
+        <SeriesCard
+          seriesSlug={currentSeries.slug}
+          seriesName={currentSeries.name}
+          posts={currentSeries.posts}
+          currentPostId={post.id}
+        />
+      )}
       <TableOfContents {headings} />
     </div>
     <article
@@ -122,72 +143,73 @@ const nextPost =
 
     <EditPost class="sm:hidden" {hideEditPost} {post} />
 
-    <ul class="mt-4 mb-8 flex flex-wrap gap-4 sm:my-8">
-      {tags.map(tag => <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />)}
-    </ul>
-
-    <BackToTopButton />
+    {/* Previous/Next Post: 댓글 위에 항상 메인에 표시 */}
+    <div data-pagefind-ignore class="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-8">
+      {prevPost && (
+        <a
+          href={getPath(prevPost.id, prevPost.filePath)}
+          class="flex w-full gap-1 hover:opacity-75"
+        >
+          <IconChevronLeft class="inline-block flex-none rtl:rotate-180" />
+          <div>
+            <span>Previous Post</span>
+            <div class="text-sm text-accent/85">{prevPost.title}</div>
+          </div>
+        </a>
+      )}
+      {nextPost && (
+        <a
+          href={getPath(nextPost.id, nextPost.filePath)}
+          class="flex w-full justify-end gap-1 text-end hover:opacity-75 sm:col-start-2"
+        >
+          <div>
+            <span>Next Post</span>
+            <div class="text-sm text-accent/85">{nextPost.title}</div>
+          </div>
+          <IconChevronRight class="inline-block flex-none rtl:rotate-180" />
+        </a>
+      )}
+    </div>
 
     <Giscus />
-
-    <hr class="my-6 border-dashed" />
-
-    <!-- Previous/Next Post Buttons -->
-    <div data-pagefind-ignore class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-      {
-        prevPost && (
-          <a
-            href={getPath(prevPost.id, prevPost.filePath)}
-            class="flex w-full gap-1 hover:opacity-75"
-          >
-            <IconChevronLeft class="inline-block flex-none rtl:rotate-180" />
-            <div>
-              <span>Previous Post</span>
-              <div class="text-sm text-accent/85">{prevPost.title}</div>
-            </div>
-          </a>
-        )
-      }
-      {
-        nextPost && (
-          <a
-            href={getPath(nextPost.id, nextPost.filePath)}
-            class="flex w-full justify-end gap-1 text-end hover:opacity-75 sm:col-start-2"
-          >
-            <div>
-              <span>Next Post</span>
-              <div class="text-sm text-accent/85">{nextPost.title}</div>
-            </div>
-            <IconChevronRight class="inline-block flex-none rtl:rotate-180" />
-          </a>
-        )
-      }
-    </div>
   </main>
 
+  {/* 왼쪽 사이드바: 시리즈 (xl 이상, 시리즈 있을 때만) */}
+  {currentSeries && (
+    <SeriesSidebar
+      seriesSlug={currentSeries.slug}
+      seriesName={currentSeries.name}
+      posts={currentSeries.posts}
+      currentPostId={post.id}
+    />
+  )}
+
+  {/* 오른쪽 사이드바: 목차만 (xl 이상) */}
   {headings.filter(h => h.depth >= 2 && h.depth <= 3).length > 0 && (
     <aside
-      id="toc-sidebar"
+      id="post-sidebar"
       class="fixed top-40 hidden max-h-[calc(100vh-12rem)] w-48 overflow-y-auto xl:block"
     >
-      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground/50">
-        목차
-      </h2>
-      <ul id="toc-links" class="space-y-0.5 border-l border-border pl-3">
-        {headings.filter(h => h.depth >= 2 && h.depth <= 3).map(h => (
-          <li>
-            <a
-              href={`#${h.slug}`}
-              class:list={[
-                "toc-link block py-0.5 text-sm leading-snug text-foreground/50 transition-colors hover:text-accent",
-                { "pl-3 text-xs": h.depth === 3 },
-              ]}
-            >
-              {h.text}
-            </a>
-          </li>
-        ))}
-      </ul>
+      <div id="toc-section">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground/50">
+          목차
+        </h2>
+        <ul id="toc-links" class="space-y-0.5 border-l border-border pl-3">
+          {headings.filter(h => h.depth >= 2 && h.depth <= 3).map(h => (
+            <li>
+              <a
+                href={`#${h.slug}`}
+                class:list={[
+                  "toc-link block py-0.5 text-sm leading-snug text-foreground/50 transition-colors hover:text-accent",
+                  { "pl-3 text-xs": h.depth === 3 },
+                ]}
+              >
+                {h.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </aside>
   )}
 
@@ -314,25 +336,25 @@ const nextPost =
     window.scrollTo({ left: 0, top: 0, behavior: "instant" })
   );
 
-  function setupTocSidebar() {
+  function setupPostSidebar() {
     const article = document.getElementById("article");
-    const tocSidebar = document.getElementById("toc-sidebar");
+    const postSidebar = document.getElementById("post-sidebar");
     const tocLinksContainer = document.getElementById("toc-links");
-    if (!article || !tocSidebar || !tocLinksContainer) return;
+    if (!article || !postSidebar) return;
 
     function positionSidebar() {
       if (window.innerWidth < 1280) return;
       const mainEl = document.getElementById("main-content");
       if (!mainEl) return;
       const rect = mainEl.getBoundingClientRect();
-      tocSidebar.style.left = rect.right + 24 + "px";
+      postSidebar.style.left = rect.right + 24 + "px";
     }
     positionSidebar();
     window.addEventListener("resize", positionSidebar);
 
     const headings = Array.from(article.querySelectorAll("h2, h3"));
-    const links = tocLinksContainer.querySelectorAll(".toc-link");
-    if (headings.length === 0 || links.length === 0) return;
+    const links = tocLinksContainer?.querySelectorAll(".toc-link");
+    if (headings.length === 0 || !links?.length) return;
 
     const observer = new IntersectionObserver(
       entries => {
@@ -357,5 +379,21 @@ const nextPost =
 
     headings.forEach(h => observer.observe(h));
   }
-  setupTocSidebar();
+  setupPostSidebar();
+
+  function setupSeriesSidebar() {
+    const seriesSidebar = document.getElementById("series-sidebar");
+    if (!seriesSidebar) return;
+
+    function positionSidebar() {
+      if (window.innerWidth < 1280) return;
+      const mainEl = document.getElementById("main-content");
+      if (!mainEl) return;
+      const rect = mainEl.getBoundingClientRect();
+      seriesSidebar.style.right = window.innerWidth - rect.left + 24 + "px";
+    }
+    positionSidebar();
+    window.addEventListener("resize", positionSidebar);
+  }
+  setupSeriesSidebar();
 </script>

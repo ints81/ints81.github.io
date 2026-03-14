@@ -1,0 +1,13 @@
+[Unit]
+Description=Watch user-defined directory and add frontmatter to new markdown files
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 __REPO_ROOT__/scripts/watch_and_add_frontmatter.py __BLOG_POSTS_DIR__
+WorkingDirectory=__REPO_ROOT__
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
