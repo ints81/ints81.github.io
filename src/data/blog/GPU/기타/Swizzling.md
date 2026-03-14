@@ -10,6 +10,10 @@ tags:
 category:
   parent: GPU
   child: 기타
+tags:
+  - GPU
+  - Swizzling
+  - Tensor Core
 description: ""
 ---
 

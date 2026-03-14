@@ -159,11 +159,13 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
-# tags: 또는 tags:\n  - x 형태의 블록을 매칭 (다음 키 또는 --- 전까지)
+# tags: 블록 - 다음 최상위 키(category, description 등) 전까지 매칭 (잘못된 들여쓰기 포함)
 TAGS_BLOCK_RE = re.compile(
-    r"^tags:\s*(?:\n(?:\s+-\s+.+|\s+\[.+\]))*\s*",
+    r"^tags:\s*(?:\n(?:.+\n)*?)?(?=\n(?:category|description|series|ogImage|draft|title|pubDatetime|---)\s*:|\n---|\Z)",
     re.MULTILINE,
 )
+# tags: [a,b] 플로우 형태 (한 줄)
+TAGS_FLOW_RE = re.compile(r"^tags:\s*\[[^\]]*\]\s*", re.MULTILINE)
 # series: name: x\n  order: N 형태의 블록
 SERIES_BLOCK_RE = re.compile(
     r"^series:\s*\n(?:\s+name:\s*.+\n)?(?:\s+order:\s*.+\n)?\s*",
@@ -365,7 +367,9 @@ def _update_existing(src_file: Path, dest_file: Path, processed: str) -> bool:
     if existing_fm:
         tags, series = parse_source_frontmatter(source_fm)
         updated_fm = merge_tags_series_into_frontmatter(existing_fm, tags, series)
-        updated = updated_fm + "\n\n" + new_body.lstrip("\n")
+        # 기존 dest 형식 유지: frontmatter와 body 사이 개행 수
+        sep = "\n\n" if "\n\n" in existing[len(existing_fm) : len(existing_fm) + 3] else "\n"
+        updated = updated_fm + sep + new_body.lstrip("\n")
     else:
         updated = processed
 
