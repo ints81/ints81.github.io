@@ -156,6 +156,45 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
+def merge_tags_series_into_frontmatter(
+    existing_fm: str,
+    source_tags: list[str] | None,
+    source_series: dict | None,
+) -> str:
+    """
+    기존 frontmatter에 소스의 tags, series를 반영한 새 frontmatter 문자열 반환.
+    source_tags/source_series가 None이면 해당 필드는 기존값 유지.
+    """
+    try:
+        import yaml
+    except ImportError:
+        return existing_fm
+    try:
+        data = yaml.safe_load(existing_fm)
+        if not data:
+            return existing_fm
+        if source_tags is not None:
+            data["tags"] = source_tags
+        if source_series is not None:
+            data["series"] = source_series
+        elif source_series is None and "series" in data:
+            pass  # 소스에 series 없으면 기존 유지
+
+        return (
+            "---\n"
+            + yaml.dump(
+                data,
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+                width=float("inf"),
+            ).rstrip()
+            + "\n---\n"
+        )
+    except Exception:
+        return existing_fm
+
+
 WIN_ABS_RE = re.compile(r"^[A-Za-z]:[/\\]")
 
 
@@ -301,10 +340,13 @@ def _create_new(src_file: Path, dest_file: Path, processed: str, source_dir: Pat
 def _update_existing(src_file: Path, dest_file: Path, processed: str) -> bool:
     existing = dest_file.read_text(encoding="utf-8")
     existing_fm, existing_body = split_frontmatter(existing)
-    _, new_body = split_frontmatter(processed)
+    source_fm, new_body = split_frontmatter(processed)
 
+    # 소스의 tags, series를 기존 frontmatter에 반영
     if existing_fm:
-        updated = existing_fm + "\n\n" + new_body.lstrip("\n")
+        tags, series = parse_source_frontmatter(source_fm)
+        updated_fm = merge_tags_series_into_frontmatter(existing_fm, tags, series)
+        updated = updated_fm + "\n\n" + new_body.lstrip("\n")
     else:
         updated = processed
 
