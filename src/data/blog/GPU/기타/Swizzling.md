@@ -3,7 +3,10 @@ title: "Swizzling"
 pubDatetime: 2026-03-14T16:32:33+09:00
 draft: false
 tags:
-  - 일반
+  - GPU
+  - Swizzling
+  - Tensor Core
+- 일반
 category:
   parent: GPU
   child: 기타

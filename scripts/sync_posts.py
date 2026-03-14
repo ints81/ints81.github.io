@@ -87,8 +87,11 @@ def parse_source_frontmatter(fm_text: str | None) -> tuple[list[str] | None, dic
         import yaml
         data = yaml.safe_load(fm_text)
         if data:
-            if isinstance(data.get("tags"), list) and data["tags"]:
-                tags = [str(t).strip() for t in data["tags"] if t]
+            t = data.get("tags")
+            if isinstance(t, list):
+                tags = [str(x).strip() for x in t if x]
+            elif isinstance(t, str) and t.strip():
+                tags = [x.strip() for x in t.split(",") if x.strip()]
             s = data.get("series")
             if isinstance(s, dict) and s.get("name") and "order" in s:
                 series = {"name": str(s["name"]).strip(), "order": int(s["order"])}
@@ -102,11 +105,11 @@ def parse_source_frontmatter(fm_text: str | None) -> tuple[list[str] | None, dic
             rest = fm_text[m.end() :].split("\n")
             found = []
             for line in rest[:20]:
-                if line.strip() and not line[0].isalpha() and "-" in line[:2]:
+                if line.strip() and (line.startswith("-") or line.startswith("  -")):
                     tag = line.lstrip("- ").strip().strip("'\"").split("#")[0].strip()
                     if tag:
                         found.append(tag)
-                elif line and not line.startswith(" ") and not line.startswith("-"):
+                elif line.strip() and not line.startswith(" ") and not line.startswith("-"):
                     break
             if found:
                 tags = found
@@ -156,6 +159,18 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
+# tags: 또는 tags:\n  - x 형태의 블록을 매칭 (다음 키 또는 --- 전까지)
+TAGS_BLOCK_RE = re.compile(
+    r"^tags:\s*(?:\n(?:\s+-\s+.+|\s+\[.+\]))*\s*",
+    re.MULTILINE,
+)
+# series: name: x\n  order: N 형태의 블록
+SERIES_BLOCK_RE = re.compile(
+    r"^series:\s*\n(?:\s+name:\s*.+\n)?(?:\s+order:\s*.+\n)?\s*",
+    re.MULTILINE,
+)
+
+
 def merge_tags_series_into_frontmatter(
     existing_fm: str,
     source_tags: list[str] | None,
@@ -164,35 +179,39 @@ def merge_tags_series_into_frontmatter(
     """
     기존 frontmatter에 소스의 tags, series를 반영한 새 frontmatter 문자열 반환.
     source_tags/source_series가 None이면 해당 필드는 기존값 유지.
+    yaml load/dump 대신 regex로 치환해 datetime 등 직렬화 이슈를 피함.
     """
-    try:
-        import yaml
-    except ImportError:
-        return existing_fm
-    try:
-        data = yaml.safe_load(existing_fm)
-        if not data:
-            return existing_fm
-        if source_tags is not None:
-            data["tags"] = source_tags
-        if source_series is not None:
-            data["series"] = source_series
-        elif source_series is None and "series" in data:
-            pass  # 소스에 series 없으면 기존 유지
-
-        return (
-            "---\n"
-            + yaml.dump(
-                data,
-                default_flow_style=False,
-                allow_unicode=True,
-                sort_keys=False,
-                width=float("inf"),
-            ).rstrip()
-            + "\n---\n"
+    result = existing_fm
+    if source_tags is not None:
+        new_tags_block = "tags:\n" + "\n".join(f"  - {t}" for t in source_tags) + "\n"
+        if TAGS_BLOCK_RE.search(result):
+            result = TAGS_BLOCK_RE.sub(new_tags_block, result, count=1)
+        else:
+            # tags가 없으면 description 앞에 삽입 (없으면 맨 뒤)
+            if "\ndescription:" in result:
+                result = result.replace("\ndescription:", "\n" + new_tags_block + "description:", 1)
+            else:
+                result = result.rstrip()
+                if not result.endswith("\n"):
+                    result += "\n"
+                result += new_tags_block
+    if source_series is not None:
+        new_series_block = (
+            "series:\n"
+            f"  name: {source_series['name']}\n"
+            f"  order: {source_series['order']}\n"
         )
-    except Exception:
-        return existing_fm
+        if SERIES_BLOCK_RE.search(result):
+            result = SERIES_BLOCK_RE.sub(new_series_block, result, count=1)
+        else:
+            if "\ndescription:" in result:
+                result = result.replace("\ndescription:", "\n" + new_series_block + "description:", 1)
+            else:
+                result = result.rstrip()
+                if not result.endswith("\n"):
+                    result += "\n"
+                result += "\n" + new_series_block
+    return result
 
 
 WIN_ABS_RE = re.compile(r"^[A-Za-z]:[/\\]")
