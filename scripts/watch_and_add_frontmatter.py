@@ -66,7 +66,18 @@ def run_watcher(source_dir: Path):
     import logging
 
     from watchdog.events import FileSystemEventHandler
-    from watchdog.observers import Observer
+
+    try:
+        from watchdog.observers.polling import PollingObserver
+        observer_cls = PollingObserver
+    except ImportError as e:
+        try:
+            from watchdog.observers import Observer
+            observer_cls = Observer
+            print("경고: PollingObserver 미지원. /mnt/c 경로에서는 감시가 동작하지 않을 수 있습니다.", file=sys.stderr)
+        except ImportError:
+            print("watchdog 설치 필요: pip install watchdog", file=sys.stderr)
+            raise SystemExit(1) from e
 
     LOG_DIR = Path.home() / ".logs"
     LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -104,7 +115,8 @@ def run_watcher(source_dir: Path):
         sys.exit(1)
 
     log.info("감시 시작: %s", source_dir)
-    observer = Observer()
+    # PollingObserver 사용: /mnt/c 등 WSL 마운트에서는 inotify가 동작하지 않음
+    observer = observer_cls()
     observer.schedule(Handler(), str(source_dir), recursive=True)
     observer.start()
 
