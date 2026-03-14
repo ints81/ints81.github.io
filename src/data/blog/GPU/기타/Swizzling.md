@@ -5,26 +5,9 @@ draft: false
 tags:
   - GPU
   - Swizzling
-  - Tensor Core
-  - TMA
 category:
   parent: GPU
   child: 기타
-tags:
-  - GPU
-  - Swizzling
-  - Tensor Core
-  - TMA
-tags:
-  - GPU
-  - Swizzling
-  - Tensor Core
-  - TMA
-tags:
-  - GPU
-  - Swizzling
-  - Tensor Core
-  - TMA
 description: ""
 ---
 
