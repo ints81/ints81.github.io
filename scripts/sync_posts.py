@@ -273,13 +273,29 @@ def _copy_image(src_img: Path, source_file: Path) -> str | None:
     return f"/images/{src_img.name}"
 
 
-def process_images(content: str, source_file: Path) -> str:
+def process_images(
+    content: str, source_file: Path, source_dir: Path, excluded_dirs: set[str]
+) -> str:
     """마크다운 및 HTML 이미지를 찾아 assets로 복사하고 경로를 갱신."""
+
+    def _is_image_excluded(src_img: Path) -> bool:
+        try:
+            rel = src_img.resolve().relative_to(source_dir.resolve())
+        except ValueError:
+            return False
+        parts = rel.parts
+        if not parts:
+            return False
+        if parts[0] in {"Excalidraw", "assets"}:
+            return True
+        return any(p in excluded_dirs for p in parts)
 
     def _replace_md(match: re.Match) -> str:
         alt, img_path = match.group(1), match.group(2)
         src_img = _resolve_image(img_path, source_file)
         if src_img is None:
+            return match.group(0)
+        if _is_image_excluded(src_img):
             return match.group(0)
         new_path = _copy_image(src_img, source_file)
         if new_path is None:
@@ -290,6 +306,8 @@ def process_images(content: str, source_file: Path) -> str:
         img_path = match.group(1)
         src_img = _resolve_image(img_path, source_file)
         if src_img is None:
+            return match.group(0)
+        if _is_image_excluded(src_img):
             return match.group(0)
         new_path = _copy_image(src_img, source_file)
         if new_path is None:
@@ -349,13 +367,29 @@ def sync(source_dir: Path):
     BLOG_DIR.mkdir(parents=True, exist_ok=True)
     changed = False
 
+    EXCLUDED_DIRS = {"Excalidraw"}
+    # Excalidraw와 같은 수준의 assets (source_dir 직계 하위) 제외
+    EXCLUDED_TOPLEVEL_DIRS = {"Excalidraw", "assets"}
+
+    def is_path_excluded(rel_path: Path) -> bool:
+        parts = rel_path.parts
+        if not parts:
+            return False
+        if parts[0] in EXCLUDED_TOPLEVEL_DIRS:
+            return True
+        return any(part in EXCLUDED_DIRS for part in parts)
+
     for src_file in sorted(source_dir.rglob("*.md")):
-        raw = src_file.read_text(encoding="utf-8")
-        processed = process_images(raw, src_file)
         try:
             rel_path = src_file.relative_to(source_dir)
         except ValueError:
-            rel_path = src_file.name
+            rel_path = Path(src_file.name)
+        if is_path_excluded(rel_path):
+            continue
+        raw = src_file.read_text(encoding="utf-8")
+        # excluded_dirs: Excalidraw만 전달. assets는 _is_image_excluded에서
+        # parts[0]으로 직계 하위만 체크하므로 "assets" 포함 시 하위 경로의 assets도 제외됨.
+        processed = process_images(raw, src_file, source_dir, EXCLUDED_DIRS)
         dest_file = BLOG_DIR / rel_path
 
         if dest_file.exists():
