@@ -172,6 +172,26 @@ SERIES_BLOCK_RE = re.compile(
     r"^series:\s*\n(?:\s+name:\s*.+\n)?(?:\s+order:\s*.+\n)?\s*",
     re.MULTILINE,
 )
+# modDatetime: 날짜 형태
+MOD_DATETIME_RE = re.compile(r"^modDatetime:\s*.+$", re.MULTILINE)
+
+
+def add_mod_datetime_to_frontmatter(existing_fm: str, mod_datetime: str) -> str:
+    """
+    기존 frontmatter에 modDatetime을 추가 또는 갱신.
+    """
+    new_line = f"modDatetime: {mod_datetime}"
+    if MOD_DATETIME_RE.search(existing_fm):
+        return MOD_DATETIME_RE.sub(new_line, existing_fm, count=1)
+    # pubDatetime 바로 다음에 삽입
+    if "pubDatetime:" in existing_fm:
+        return re.sub(
+            r"(pubDatetime:\s*[^\n]+)",
+            rf"\1\n{new_line}",
+            existing_fm,
+            count=1,
+        )
+    return existing_fm
 
 
 def merge_tags_series_into_frontmatter(
@@ -370,9 +390,16 @@ def _update_existing(src_file: Path, dest_file: Path, processed: str) -> bool:
     if existing_fm:
         tags, series = parse_source_frontmatter(source_fm)
         updated_fm = merge_tags_series_into_frontmatter(existing_fm, tags, series)
+        new_body_stripped = new_body.lstrip("\n")
+        # 본문 또는 메타데이터 변경 시 modDatetime 추가/갱신
+        body_changed = new_body_stripped != existing_body.lstrip("\n")
+        meta_changed = updated_fm != existing_fm
+        if body_changed or meta_changed:
+            mod_dt = datetime.now(KST).strftime("%Y-%m-%dT%H:%M:%S+09:00")
+            updated_fm = add_mod_datetime_to_frontmatter(updated_fm, mod_dt)
         # 기존 dest 형식 유지: frontmatter와 body 사이 개행 수
         sep = "\n\n" if "\n\n" in existing[len(existing_fm) : len(existing_fm) + 3] else "\n"
-        updated = updated_fm + sep + new_body.lstrip("\n")
+        updated = updated_fm + sep + new_body_stripped
     else:
         updated = processed
 
