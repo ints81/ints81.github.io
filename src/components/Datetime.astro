@@ -47,7 +47,7 @@ const modDate = isModified
   {
     modDate && (
       <span class:list={["text-sm text-foreground/70", { "sm:text-base": size === "lg" }]}>
-        (수정: <time datetime={modDate.toISOString()}>{modDate.format("YYYY.MM.DD")}</time>)
+        (Update: <time datetime={modDate.toISOString()}>{modDate.format("YYYY.MM.DD")}</time>)
       </span>
     )
   }
